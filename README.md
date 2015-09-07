@@ -70,7 +70,7 @@ print("Data for key1 = ", data)
  
 ## License
 
-LuaNoSQL is free software and uses the same [license](https://github.com/hcsturix74/LuaNoSQL/LICENSE)
+LuaNoSQL is free software and uses the same [license](https://github.com/hcsturix74/LuaNoSQL/blob/master/LICENSE)
 as Lua 5.1.
 
 
