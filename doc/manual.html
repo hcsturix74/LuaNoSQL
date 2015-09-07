@@ -82,7 +82,88 @@
 				<div id="content">
 					<div class="innertube">
 						<h1>LuaNoSQL - Lua NoSQL database connectivity</h1>
-						<p></p>
+						<div name="introduction">
+							<h2>Introduction</h2>
+							<p>LuaNoSQL is a simple interface from Lua to NoSQL database management systems.
+								It includes different drivers for diffenrent NoSQL DBMS  (currently UnQLite, Vedis and others are foreseen) 
+								LuaNoSQL defines a simple object-oriented API.
+								All drivers should implement this common API, but each one is free to offer extensions.
+							</p>
+							<p>LuaNoSQL defines one single global variable, a table called <code>luanosql</code>. This table is used to store the initialization methods of theloaded drivers.
+							These methods are used to create an <a href="#environment_object">environment object</a> which is used to create a
+							<a href="#connection_object">connection object</a>.
+							A connection object can create a <a href="#cursor_object">cursor object</a> create a which can be used to retrieve, store and seek data.
+							</p>
+						<div> <!-- Introduction -->
+						
+						<div name="compiling">
+						<h2>Compiling</h2>
+						<p>LuaNoSQL is distributed as a set of C source files:
+						a pair of common source and header files (<code>luanosql.h</code> and <code>luanosql.c</code>);
+						and one source file for each driver.
+						Each driver should be compiled with the luanosql.c file to generate a library.
+						This library can be linked to the application or dynamically loaded. 
+						The initialization function is <code>luaopen_luanosql<em>_drivername</em></code> and it is a Lua
+						<a href="http://www.lua.org/manual/5.1/manual.html#pdf-require"><code>open-library</code></a> compatible function.						
+						</p>
+						<p>Check in <i>Makefile</i> that installation folder is correct for your Linux or OSX system. To install LuaNoSQL:
+							<ul>
+								<li>Go to LuaNoSQL folder and type: <pre>make lib</pre></li>
+								<li>Then, to install it, type: <pre>make install</pre></li>
+							</ul>
+						</p>
+
+						<div> <!-- compiling -->
+						
+						<div name="installation">
+						<h2>Installation</h2>
+						<p>LuaNoSQL drivers follow the package model of Lua 5.2. All drivers should be "installed" in your <code>package.cpath</code> into a
+						folder called <code>luanosql</code>.</p>
+						<div> <!-- installation -->
+						
+						<div name="error_handling">
+						<h2>Error Handling</h2>
+						<p>
+						LuaNoSQL is just an abstraction layer that communicates between Lua
+						and a database system.
+						Therefore errors can occur on both levels, that is, inside the database client or inside LuaNoSQL driver.
+						</p>
+						<p>
+						Errors, unknown table names etc. are called <em>database errors</em> and
+						will be reported by the function/method returning <code>nil</code> followed
+						by the error message provided by the database system.
+						Errors such as wrong parameters, absent connection, invalid objects etc., called <em>API errors</em>,
+						are usually program errors and so will raise a Lua error.
+						</p>
+						<p>
+						This behavior will be followed by all functions/methods described in this document unless otherwise stated.
+						</p>
+
+						<div> <!-- error_handling -->
+						
+						<div name="drivers">
+						<h2>Drivers</h2>
+						<div> <!-- drivers -->
+						
+						<div name="environment_object">
+						<h2>Environment</h2>
+						<div> <!-- environment -->
+						
+						<div name="connection_object">
+						<h2>Connection</h2>
+						<div> <!-- connection -->
+						
+						<div name="cursor_object">
+						<h2>Cursor</h2>
+						<div> <!-- cursors -->
+						
+						<div name="unqlite_extensions">
+						<h2>UnQLite</h2>
+						<div> <!-- unqlite -->
+						
+						<div name="vedis_extensions">
+						<h2>Vedis (Not Available yet)</h2>
+						<div> <!-- vedis -->
 					</div>
 				</div>
 			</main>
