@@ -33,14 +33,16 @@ To install LuaNoSQL:
  ```
  make lib
  ```
- * Then, to install it, type::
+
+ * Then, to install it, type:
  ```
  make install
  ```
+ 
  You are done! You can use it
 
 
-# Example:
+## Example:
 
 Here a simple example on how to use LuaNoSQL with UnQLite driver.
 For feature list and supported functions check the documentation.
