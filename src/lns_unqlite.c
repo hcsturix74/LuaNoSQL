@@ -390,7 +390,11 @@ static int cur_is_valid_entry(lua_State *L)
     const char *errmsg;
     cur_data *cur = getcursor(L);
     res = unqlite_kv_cursor_valid_entry(cur->cursor);
-    lua_pushboolean(L, res);
+	if (res != UNQLITE_OK) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+    lua_pushboolean(L, 1);
     return 1;
 }
 
@@ -407,7 +411,11 @@ static int cur_prev_entry(lua_State *L)
     const char *errmsg;
     cur_data *cur = getcursor(L);
     res = unqlite_kv_cursor_prev_entry(cur->cursor);
-    lua_pushboolean(L, res);
+	if (res != UNQLITE_OK) {
+        unqlite_logerror(cur->conn_data->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+    }
+    lua_pushboolean(L, 1);
     return 1;
 }
 
@@ -424,7 +432,11 @@ static int cur_next_entry(lua_State *L)
     const char *errmsg;
     cur_data *cur = getcursor(L);
     res = unqlite_kv_cursor_next_entry(cur->cursor);
-    lua_pushboolean(L, res);
+	if (res != UNQLITE_OK) {
+        unqlite_logerror(cur->conn_data->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+    }
+    lua_pushboolean(L, 1);
     return 1;
 }
 
@@ -445,6 +457,7 @@ static int cur_delete_entry(lua_State *L)
         unqlite_logerror(cur->conn_data->unqlite_conn, errmsg);
         return luanosql_faildirect(L, errmsg);
     }
+	lua_pushboolean(L, 1);
     return 1;
 }
 
@@ -734,8 +747,7 @@ static int conn_kv_store(lua_State *L)
     if (res != UNQLITE_OK)
     {
         unqlite_logerror(conn->unqlite_conn, errmsg);
-        luanosql_faildirect(L, errmsg);
-        return 2;
+        return luanosql_faildirect(L, errmsg);
     }
     lua_pushboolean(L, 1);
     return 1;
@@ -763,8 +775,7 @@ static int conn_kv_append(lua_State *L)
     if (res != UNQLITE_OK)
     {
         unqlite_logerror(conn->unqlite_conn, errmsg);
-        luanosql_faildirect(L, errmsg);
-        return 2;
+        return luanosql_faildirect(L, errmsg);
     }
     lua_pushboolean(L, 1);
     return 1;
@@ -800,8 +811,7 @@ static int conn_kv_fetch(lua_State *L)
     }
     if (res != UNQLITE_OK) {
         unqlite_logerror(conn->unqlite_conn, errmsg);
-        luanosql_faildirect(L, errmsg);
-        return 2;
+        return luanosql_faildirect(L, errmsg);
     }
 
     //Allocate a buffer big enough to hold the record content
@@ -818,9 +828,8 @@ static int conn_kv_fetch(lua_State *L)
     if (res != UNQLITE_OK)
     {
         unqlite_logerror(conn->unqlite_conn, errmsg);
-        luanosql_faildirect(L, errmsg);
-        free(zBuf);
-        return 2;
+		free(zBuf);
+        return luanosql_faildirect(L, errmsg);
     }
     lua_pushboolean(L, 1);
     lua_pushlstring(L, zBuf, nBytes);
@@ -849,8 +858,7 @@ static int conn_kv_delete(lua_State *L)
     if (res != UNQLITE_OK)
     {
         unqlite_logerror(conn->unqlite_conn, errmsg);
-        luanosql_faildirect(L, errmsg);
-        return 2;
+        return luanosql_faildirect(L, errmsg);
     }
     lua_pushboolean(L, 1);
     return 1;
@@ -915,9 +923,8 @@ static int env_connect(lua_State *L)
     if (res != UNQLITE_OK)
     {
         unqlite_logerror(conn, errmsg);
-        luanosql_faildirect(L, errmsg);
-        unqlite_close(conn);
-        return 2;
+		unqlite_close(conn);
+        return luanosql_faildirect(L, errmsg);
     }
     return create_connection(L, 1, conn);
 }

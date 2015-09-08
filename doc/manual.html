@@ -188,32 +188,111 @@ local env = driver.unqlite()
 						Returns <strong>true</strong> if success, nil and err otherwise. 
 						</p>
 						<p><code>conn:rollback()</code></br>
-						Rollback a DB transaction</p>
+						Rollback a DB transaction.</br>
 						Returns <strong>true</strong> if success, nil and err otherwise.
+						</p>
 						<p><code>conn:kvstore(key,data)</code></br>
-						Store a key and value data into DB
+						Store a key and value data into DB.</br>
+						Returns <strong>true</strong> if success, nil and err otherwise.
 						</p>
 						<p><code>conn:kvappend(key,data)</code></br>
-						Append data to a given record (key)
+						Append data to a given record (key).</br>
+						Returns <strong>true</strong> if success, nil and err otherwise.
 						</p>
 						<p><code>conn:kvfetch(key)</code></br>
-						Retrieve data from a given record (key)
+						Retrieve data from a given record (key).</br>
+						Returns <strong>true</strong> and <strong>data</strong> if success and key is found.</br>
+						Returns <strong>true</strong> and nil if key is not found.</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>conn:delete(key)</code></br>
+						Delete a record passing the key.</br>
+						Returns <strong>true</strong> if success.</br>
+						Returns nil and err in case of failure.
+						</p>
 						<p><code>conn:kvfetch_callback(key,func,ud)</code></br>
-						set a callback data consumer function
+						Set for a given key a callback data consumer function with custom userdata.</br>
+						Returns nil.
 						<p><code>conn:create_cursor()</code></br>
-						create a new cursor (supported by unQLite, not in vedis)
+						Create a new cursor if supported (supported by UnQLite, not in Vedis).</br>
+						Returns a <a href="#cursor_object">cursor object</a>
 						<div> <!-- connection -->
 						
 						
 						<div name="unqlite_extensions">
 						<h2>UnQLite</h2>
-						
-						<div name="cursor_object">
-						<h3>Cursor</h3>
-						<p>UnQLite supports cursor objects but they are not present in all NoSQL DBMS.
-						
-						
+						<p>
+						UnQlite DBMS offers some extensions which are not supported in other DBMS. Cursor objects are an example (see below).
+						A cursor in UnQLite is created by calling the <a href="#environment_object">conn:create_cursor</a> method.
 						</p>
+						<div name="cursor_object">
+						<h3>Cursor Methods</h3>						
+						<p><code>cur:release()</code></br>
+						Release a cursor and destroy its data</br>
+						Returns <strong>true</strong> if success</br>
+						</p>
+						<p><code>cur:seek(key,[search_method])</code></br>
+						Cursor seek for a given key passing the "search_method"</br>
+						<strong>search_method</strong> can be:
+						<ul>
+							<li>UNQLITE_CURSOR_MATCH_EXACT = 0 (default)</li>
+							<li>UNQLITE_CURSOR_MATCH_LE = 1</li>
+							<li>UNQLITE_CURSOR_MATCH_GE = 2</li>
+						</ul>
+						See also <a href="http://unqlite.org/c_api/unqlite_kv_cursor.html">UnQLite doc</a>.
+						If <strong>search_method</strong> is ommitted or set to <strong>nil</strong> the default
+						cursor match methos is used (UNQLITE_CURSOR_MATCH_EXACT).</br>
+						Returns <strong>true</strong> if success and key is found.</br>
+						Returns <strong>false</strong> if key is not found.</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:first_entry()</code></br>
+						Move the cursor to first entry</br>
+						Returns <strong>true</strong> if success</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:last_entry()</code></br>
+						Move the cursor to last entry</br>
+						Returns <strong>true</strong> if success</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:is_valid_entry()</code></br>
+						Check if cursor is valid</br>
+						Returns <strong>true</strong> if success</br>
+						Returns false in case of failure.
+						</p>
+						<p><code>cur:prev_entry()</code></br>
+						Move the cursor to previous entry</br>
+						Returns <strong>true</strong> if success</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:next_entry()</code></br>
+						Move the cursor to next entry</br>
+						Returns <strong>true</strong> if success</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:delete_entry()</code></br>
+						Delete a record using the cursor</br>
+						Returns <strong>true</strong> if success</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:cursor_key()</code></br>
+						Retrieve key using a cursor</br>
+						Returns <strong>key</strong> if success.</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:cursor_data()</code></br>
+						Retrieve data using a cursor</br>
+						Returns <strong>data</strong> if success.</br>
+						Returns nil and err in case of failure.
+						</p>
+						<p><code>cur:cursor_key_callback()</code></br>
+						<strong>Not supported in LuaNoSQL v1.0</strong> </br>
+						</p>
+						<p><code>cur:cursor_data_callback()</code></br>
+						<strong>Not supported LuaNoSQL v1.0</strong> </br>
+						</p>
+						
 						<div> <!-- cursors -->
 						
 						
@@ -244,7 +323,6 @@ local env = driver.unqlite()
 						<li><a href="manual.html#drivers">Drivers</a></li>
 						<li><a href="manual.html#environment_object">Environment</a></li>
 						<li><a href="manual.html#connection_object">Connection</a></li>
-						<li><a href="manual.html#cursor_object">Cursor</a></li>
 						<li><a href="manual.html#unqlite_extensions">UnQLite</a></li>
 						<li><a href="manual.html#vedis_extensions">Vedis (N.A.)</a></li>
 					</ul>
