@@ -85,11 +85,11 @@
 						<div name="introduction">
 							<h2>Introduction</h2>
 							<p>LuaNoSQL is a simple interface from Lua to NoSQL database management systems.
-								It includes different drivers for diffenrent NoSQL DBMS  (currently UnQLite, Vedis and others are foreseen) 
+								It includes different drivers for different NoSQL DBMS  (currently UnQLite, Vedis and others are foreseen) 
 								LuaNoSQL defines a simple object-oriented API.
 								All drivers should implement this common API, but each one is free to offer extensions.
 							</p>
-							<p>LuaNoSQL defines one single global variable, a table called <code>luanosql</code>. This table is used to store the initialization methods of theloaded drivers.
+							<p>LuaNoSQL defines one single global variable, a table called <code>luanosql</code>. This table is used to store the initialization methods of loaded drivers.
 							These methods are used to create an <a href="#environment_object">environment object</a> which is used to create a
 							<a href="#connection_object">connection object</a>.
 							A connection object can create a <a href="#cursor_object">cursor object</a> create a which can be used to retrieve, store and seek data.
@@ -143,22 +143,80 @@
 						
 						<div name="drivers">
 						<h2>Drivers</h2>
+						<p>Drivers (like environments and cursors) in LuaNoSQL have the same concept of LuaSQL ones. Using a simple <code>require</code>
+						it returns a table of the corresponding driver. </p>
+						<p>
+						Example:
+						<pre>local unqlite_driver = require "luanosql.unqlite"       
+local vedis_driver = require "luanosql.vedis" -- Not yet supported</pre>
+						</p>
 						<div> <!-- drivers -->
 						
 						<div name="environment_object">
 						<h2>Environment</h2>
+						<p> Environments are created calling a driver function for initialization which returns an 
+						environment object.
+						</p>
+						<p>
+						Example:
+						<pre>local unqlite_driver = require "luanosql.unqlite"       
+local env = driver.unqlite()
+						</pre>
+						</p>
+						<h3>Methods</h3>
+						<p><code>env:close()</code></br>
+						Closes the environment <code>env</code>. </br>
+						Returns <strong>true</strong> if success, 
+						<strong>false</strong> if already closed.  
+						</p>
+						<p><code>env:connect(db)</code></br>
+						Create a connection with specified DB name.</br> 
+						Returns a <a href="#connection_object">connection object</a>.  
+						</p>
 						<div> <!-- environment -->
 						
 						<div name="connection_object">
 						<h2>Connection</h2>
+						<p>
+						A connection object holds data of a single db connection. 
+						A connection is created by calling the <a href="#environment_object">environment:connect</a> method.
+						</p>
+						<h3>Methods</h3>
+						<p><code>conn:commit()</code></br>
+						This function commits changes to the database.</br>
+						<i>NOTE: normally (on UnQLite) changes are automatically committed when database connection is closed.</i>
+						Returns <strong>true</strong> if success, nil and err otherwise. 
+						</p>
+						<p><code>conn:rollback()</code></br>
+						Rollback a DB transaction</p>
+						Returns <strong>true</strong> if success, nil and err otherwise.
+						<p><code>conn:kvstore(key,data)</code></br>
+						Store a key and value data into DB
+						</p>
+						<p><code>conn:kvappend(key,data)</code></br>
+						Append data to a given record (key)
+						</p>
+						<p><code>conn:kvfetch(key)</code></br>
+						Retrieve data from a given record (key)
+						<p><code>conn:kvfetch_callback(key,func,ud)</code></br>
+						set a callback data consumer function
+						<p><code>conn:create_cursor()</code></br>
+						create a new cursor (supported by unQLite, not in vedis)
 						<div> <!-- connection -->
 						
-						<div name="cursor_object">
-						<h2>Cursor</h2>
-						<div> <!-- cursors -->
 						
 						<div name="unqlite_extensions">
 						<h2>UnQLite</h2>
+						
+						<div name="cursor_object">
+						<h3>Cursor</h3>
+						<p>UnQLite supports cursor objects but they are not present in all NoSQL DBMS.
+						
+						
+						</p>
+						<div> <!-- cursors -->
+						
+						
 						<div> <!-- unqlite -->
 						
 						<div name="vedis_extensions">
