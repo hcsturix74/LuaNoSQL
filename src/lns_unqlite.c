@@ -839,7 +839,8 @@ static int conn_kv_fetch(lua_State *L)
 
 
 /*
-** Delete a record passing the key
+** Delete a record passing the key. if the record is not found it returns
+** true anyway as deleting a non existent record does not have any side-effect.
 ** wraps unqlite_kv_delete to a data source.
 ** int unqlite_kv_delete(unqlite *pDb,const void *pKey,int nKeyLen);
 ** @param L the lua state 
@@ -855,7 +856,7 @@ static int conn_kv_delete(lua_State *L)
 
     res = unqlite_kv_delete(conn->unqlite_conn, key, iLen);
 
-    if (res != UNQLITE_OK)
+    if (res != UNQLITE_OK && res != UNQLITE_NOTFOUND)
     {
         unqlite_logerror(conn->unqlite_conn, errmsg);
         return luanosql_faildirect(L, errmsg);
