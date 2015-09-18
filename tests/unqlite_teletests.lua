@@ -101,6 +101,11 @@ context("User should be able to create/close a connection", function()
 		assert_true(conn:close())
 	end)
 	
+	-- destroy the connection even if already closed (it should return false)
+	test("Should NOT be able to close an already closed connection", function ()
+		assert_false(conn:close())
+	end)
+	
 	-- check data persistence re-opening the connection, fetch and check data
 	test ("Should be able to check data have been written", function()
 		local conn = assert(env:connect("lns-unqlite.testdb"))

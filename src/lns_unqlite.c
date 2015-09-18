@@ -558,7 +558,7 @@ static int cur_get_data(lua_State *L)
 */
 static int conn_gc(lua_State *L)
 {
-    conn_data *conn = getconnection(L);
+    conn_data *conn = (conn_data *)luaL_checkudata(L, 1, LUANOSQL_CONNECTION_UNQLITE);
     if (conn != NULL && !(conn->closed))
     {
         if (conn->cur_counter > 0)
@@ -570,7 +570,7 @@ static int conn_gc(lua_State *L)
         luaL_unref(L, LUA_REGISTRYINDEX, conn->con_fetch_cb);
         luaL_unref(L, LUA_REGISTRYINDEX, conn->con_fetch_cb_udata);
         unqlite_close(conn->unqlite_conn);
-        conn->unqlite_conn = NULL;
+        
     }
     return 0;
 }
@@ -583,7 +583,7 @@ static int conn_gc(lua_State *L)
 */
 static int conn_close(lua_State *L)
 {
-    conn_data *conn = getconnection(L);
+    conn_data *conn = (conn_data *)luaL_checkudata(L, 1, LUANOSQL_CONNECTION_UNQLITE);
     luaL_argcheck (L, conn != NULL, 1, LUANOSQL_PREFIX"connection expected");
     if (conn->closed)
     {
