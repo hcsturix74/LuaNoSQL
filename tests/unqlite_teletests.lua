@@ -63,7 +63,7 @@ context("User should be able to create/close a connection", function()
 		
 		test("Should be able to (try to) delete a non-existent record", function ()
 			-- it should not be there anymore, already deleted
-            -- this check also if 'real' delete is OK
+			-- this check also if 'real' delete is OK
 			local res, merror = conn:kvdelete("Hello")
 			assert_true(res and merror==nil)
 			
