@@ -9,7 +9,7 @@
 require"string"
 require"os"
 local driver = require"luanosql.unqlite"
-local env = assert(driver.unqlite())
+
 
 
 -- simple table to be inserted in DB
@@ -23,7 +23,13 @@ local mlist = {["key1"]="value-1", ["key2"]="value-2", ["key3"]="value-3",
 context("User should be able to create/close a connection", function()
 	
 	-- connection to db
-	local conn
+	local conn, env
+	
+	-- create an environment
+	test("Should be able to create unqlite environment", function ()
+		env = assert(driver.unqlite())
+		assert_not_nil(env)
+	end)
 	
 	-- create a connection
 	test("Should be able to create a connection passing dbname", function ()
@@ -113,6 +119,17 @@ context("User should be able to create/close a connection", function()
 		-- close connection
 		assert_true(conn:close())
 	end)
+	
+	-- close the environment
+	test("Should be able to close unqlite environment", function ()
+		assert_true(env:close())
+	end)
+	
+	-- destroy the environment even if already closed (it should return false)
+	test("Should NOT be able to close an already closed environment", function ()
+		assert_false(env:close())
+	end)
+	
 end)
 
 
@@ -122,19 +139,25 @@ end)
 context("User should be able to manually manage transactions", function()
 	
 	-- connection to db
-	local conn
+	local conn, env
 	
 	-- delete db file first, we start from scratch
 	os.remove("lns-unqlite.testdb")
+	
+	-- create an environment
+	test("Should be able to create unqlite environment", function ()
+		env = assert(driver.unqlite())
+		assert_not_nil(env)
+	end)
 	
 	-- create a connection
 	test("Should be able to create a connection passing dbname", function ()
 			conn = assert(env:connect("lns-unqlite.testdb"))
 			assert_not_nil(conn)
 	end)
-	
+	-- nested context also here
 	context("User should be able commit/rollback manually a transation", function()
-		-- create a connection
+		
 		test("Should be able to rollback a transaction", function ()
 				-- insert a record
 				local res, err = conn:kvstore("Mykey1","MyKeyValue1")
@@ -181,9 +204,15 @@ context("User should be able to manually manage transactions", function()
 				assert_equal(d3,"MySecondKeyValue2")
 		end)
 	end)
+	
 	-- close connection
 	test("Should be able to close the connection", function ()
 		assert_true(conn:close())
+	end)
+	
+	-- close the environment
+	test("Should be able to close unqlite environment", function ()
+		assert_true(env:close())
 	end)
 	
 end) -- end context
