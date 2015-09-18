@@ -7,7 +7,7 @@
 
 -- Here some require, we do assertion anyway
 require"string"
-
+require"os"
 local driver = require"luanosql.unqlite"
 local env = assert(driver.unqlite())
 
@@ -115,4 +115,75 @@ context("User should be able to create/close a connection", function()
 	end)
 end)
 
+
+
+
+-- In this context we cover commit and rollback
+context("User should be able to manually manage transactions", function()
 	
+	-- connection to db
+	local conn
+	
+	-- delete db file first, we start from scratch
+	os.remove("lns-unqlite.testdb")
+	
+	-- create a connection
+	test("Should be able to create a connection passing dbname", function ()
+			conn = assert(env:connect("lns-unqlite.testdb"))
+			assert_not_nil(conn)
+	end)
+	
+	context("User should be able commit/rollback manually a transation", function()
+		-- create a connection
+		test("Should be able to rollback a transaction", function ()
+				-- insert a record
+				local res, err = conn:kvstore("Mykey1","MyKeyValue1")
+				assert(res and err==nil)
+				-- is record there? It should be now
+				local r0, d0 = conn:kvfetch("Mykey1")
+				assert_true(r0)
+				assert_equal(d0,"MyKeyValue1")
+				-- try to rollback this
+				local res2, err2 = conn:rollback()
+				assert(res2 and err2==nil)
+				-- check if rollback works, record should not be there
+				local r, d = conn:kvfetch("Mykey1")
+				assert_true(r)
+				assert_nil(d)
+		end)
+		
+		-- commit  a transaction and verify it using rollback
+		test("Should be able to commit a transaction when needed", function ()
+				-- insert a record
+				local res, err = conn:kvstore("MySecondkey1","MySecondKeyValue1")
+				assert(res and err==nil)
+				local res1, err1 = conn:kvstore("MySecondkey2","MySecondKeyValue2")
+				assert(res1 and err1==nil)
+				-- try to commit these two
+				local res2, err2 = conn:commit()
+				assert(res2 and err2==nil)
+				-- store another one
+				local res3, err3 = conn:kvstore("MyThirdkey1","MyThirdKeyValue1")
+				assert(res3 and err3==nil)
+				-- try to rollback this
+				local r, e = conn:rollback()
+				assert(r and e==nil)
+				-- check if rollback works, last record should not be there
+				local r1, d1 = conn:kvfetch("MyThirdkey1")
+				assert_true(r1)
+				assert_nil(d1)
+				-- now check that the first two are still there
+				local r2, d2 = conn:kvfetch("MySecondkey1")
+				assert_true(r2)
+				assert_equal(d2,"MySecondKeyValue1")
+				local r3, d3 = conn:kvfetch("MySecondkey2")
+				assert_true(r3)
+				assert_equal(d3,"MySecondKeyValue2")
+		end)
+	end)
+	-- close connection
+	test("Should be able to close the connection", function ()
+		assert_true(conn:close())
+	end)
+	
+end) -- end context
