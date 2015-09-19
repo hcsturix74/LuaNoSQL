@@ -1,3 +1,15 @@
+/*
+** LuaUnQLite binding
+** LuaUnQlite no-FFI based binding
+** Author: Luca Sturaro (hcsturix74(at)gmail.com)
+** See Copyright Notice in license.html
+** Taken from LuaSQL and adapted
+** 
+** Credits:
+** Thanks to LuaSQLite3 and LuaSQL projects
+** This binding is heavily inspired by them and
+** helped me to get into "lua/C binding world".
+*/
 
 #include <string.h>
 

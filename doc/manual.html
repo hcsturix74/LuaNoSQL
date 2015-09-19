@@ -202,8 +202,8 @@ local env = driver.unqlite()
 						<p><code>conn:kvfetch(key)</code></br>
 						Retrieve data from a given record (key).</br>
 						Returns <strong>true</strong> and <strong>data</strong> if success and key is found.</br>
-						Returns <strong>true</strong> and nil if key is not found.</br>
-						Returns nil and err in case of failure.
+						Returns <strong>true</strong> and <strong>nil</strong> if key is not found.</br>
+						Returns <strong>nil</strong> and <strong>err</strong> in case of failure.
 						</p>
 						<p><code>conn:delete(key)</code></br>
 						Delete a record passing the key.</br>
