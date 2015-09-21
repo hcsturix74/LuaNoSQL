@@ -382,7 +382,7 @@ static int cur_last_entry(lua_State *L)
 ** It wraps unqlite_kv_cursor_valid_entry.
 ** int unqlite_kv_cursor_valid_entry(unqlite_kv_cursor *pCursor);
 ** @param L the lua state 
-** @return integer 1 or luanosql_faildirect
+** @return integer 1 (true or false pushed on lua stack)
 */
 static int cur_is_valid_entry(lua_State *L)
 {
@@ -390,11 +390,7 @@ static int cur_is_valid_entry(lua_State *L)
     const char *errmsg;
     cur_data *cur = getcursor(L);
     res = unqlite_kv_cursor_valid_entry(cur->cursor);
-	if (res != UNQLITE_OK) {
-        lua_pushboolean(L, 0);
-        return 1;
-    }
-    lua_pushboolean(L, 1);
+    lua_pushboolean(L, res);
     return 1;
 }
 
