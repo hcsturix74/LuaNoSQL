@@ -1,17 +1,18 @@
 # LuaNoSQL
-LuaNoSQL is a simple no-ffi-based interface from Lua to NoSQL DBMS
+LuaNoSQL is a simple no-ffi-based interface from Lua to NoSQL DBMS (UnQLite, Vedis...)
 
 ## Overview
 
 LuaNoSQL is a simple interface from Lua to NoSQL DBMS (heavily inspired by [LuaSQL](http://keplerproject.github.io/luasql/doc/us/) & [LuaSQLite3](http://lua.sqlite.org/index.cgi/index)). 
-This implementation is NOT based on [FFI library](http://luajit.org/ext_ffi.html)
+This implementation is NOT based on [FFI library](http://luajit.org/ext_ffi.html).
+
 It enables a Lua program to:
  * Connect to UnQLite, Vedis (not supported yet) databases;
  * Execute arbitrary key/value operations;
  * Manage data using cursors.
  
 Version 1.0 is the first official release and it supports [UnQLite](http://unqlite.org) DB only. 
-
+JX9 Document Store functions for UnQLite are currently not supported (in development)
 
 ## Status
 
@@ -67,6 +68,17 @@ print("Data for key1 = ", data)
 
 ```
  
+## Tests
+
+In tests folder you can see some examples and tests.
+Tests are written using lua [telescope](https://github.com/norman/telescope) and can be run from bash: 
+
+```bash
+
+tsc -f tests/unqlite_teletests.lua
+
+```
+
  
 ## License
 
