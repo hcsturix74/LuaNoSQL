@@ -11,12 +11,13 @@ It enables a Lua program to:
  * Execute arbitrary key/value operations;
  * Manage data using cursors.
  
-Version 1.0 is the first official release and it supports [UnQLite](http://unqlite.org) DB only. 
+Version 1.0.0 is the first official release and it supports [UnQLite](http://unqlite.org) DB only.
+
 JX9 Document Store functions for UnQLite are currently not supported (in development)
 
 ## Status
 
-LuaNoSQL version 1.0 (for Lua 5.X) is now available. 
+LuaNoSQL version 1.0.0 (for Lua 5.1 and 5.2) is now available. 
 It can be compiled under Linux and OS X with current Makefile.
 It should also work in Windows OSes but a custom Makefile should be added.
 
@@ -79,10 +80,20 @@ tsc -f tests/unqlite_teletests.lua
 
 ```
 
- 
 ## License
 
 LuaNoSQL is free software and uses the same [license](https://github.com/hcsturix74/LuaNoSQL/blob/master/LICENSE)
 as Lua 5.1.
+
+
+## In Development
+
+Version 1.1.0:
+
+* JX9 DOC STORE API: expose document  store functions for built-in JX9 engine
+
+Version 1.2.0:
+
+* Vedis Driver: an interface for Vedis NoSQL DBMS
 
 

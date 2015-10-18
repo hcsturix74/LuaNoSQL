@@ -148,6 +148,6 @@ LUANOSQL_API void luanosql_set_info (lua_State *L) {
     lua_pushliteral (L, "LuaNoSQL is a simple interface from Lua to NoSQL DBMS.");
     lua_settable (L, -3);
     lua_pushliteral (L, "_VERSION");
-    lua_pushliteral (L, "LuaNoSQL 1.0");
+    lua_pushliteral (L, "LuaNoSQL 1.0.0");
     lua_settable (L, -3);
 }
