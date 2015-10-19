@@ -666,7 +666,7 @@ static int fetch_callback(const void *pData, unsigned int iDataLen, void *pUserD
     /* setup lua callback */
     lua_rawgeti(L, LUA_REGISTRYINDEX, conn->con_fetch_cb);    /* get the callback function */
     /* pData push  param */
-    lua_pushstring(L, pData);
+    lua_pushlstring(L, pData, (size_t)iDataLen);
     /* iDataLen push  param */
     lua_pushinteger(L, iDataLen);
     /* get callback user data */
@@ -911,7 +911,6 @@ static int env_connect(lua_State *L)
     unqlite *conn;
     const char *errmsg;
     int res;
-    int iLen;
     getenvironment(L);  /* validate environment */
 
     sourcename = luaL_checkstring(L, 2);

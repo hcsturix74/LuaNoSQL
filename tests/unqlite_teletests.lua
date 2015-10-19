@@ -36,6 +36,21 @@ end
 
 
 
+-- define a custom callback for fetch
+local function custom_test_fetch_callback(dataout,datalen,ud)
+  --print("UnQLite Update Hook:",dataout,datalen,ud)
+  local t1,t2,t3 = ud["1"], ud["2"],ud["3"]
+  --print("Userdata:", t1,t2,t3)
+  -- check with a binary object passed, we use conection itself
+  local r,v = t3:kvfetch("key4")
+  -- no assert here, this is a callback and errors are NOT managed (at C-level)
+  if r and v=="value-4" then 
+	print("Lua Callback key OK")
+  end
+end
+
+
+
   
 -- In this context we address data manipulation on an already opened connection
 -- such as put/get records with data, append and delete.
@@ -113,6 +128,18 @@ context("User should be able to create/close a connection", function()
 			assert_equal(data2, "value-10-appended")
 		end)
 		
+		test("Should be able to register a consumer callback to redirect data retrieval", function()
+			--  Try to pass userdata which can be used by callback itself
+			--print("Check Callback on fetch")
+			-- passing a mix of objects and strings to verify we can use objects also
+			local tbl = {["1"]="Lippa",["2"]="Cippa",["3"]=conn}
+			conn:kvfetch_callback("key9",custom_test_fetch_callback, tbl)
+			--print("Callback registered")
+			-- kvfetch a value
+			res, myval = conn:kvfetch("key9")
+			assert_true(res and myval == "value-9")
+		end)
+	
 	end)
 	
 	-- close connection
@@ -314,11 +341,11 @@ context("User should be able to manage data using cursor", function()
 			assert_equal(cur:cursor_data(),mlist["key5"])
 			-- pass a out-of-range value, fallback to EXTACT_MATCH
 			local res1, err1 = cur:seek("key4", 5)
-			assert_true(res and err==nil)
+			assert_true(res1 and err1==nil)
 			assert_equal(cur:cursor_data(),mlist["key4"])
 			-- avoid passing search method (nil), fallback to EXACT_MATCH
-			local res1, err1 = cur:seek("key6")
-			assert_true(res and err==nil)
+			local res2, err2 = cur:seek("key6")
+			assert_true(res2 and err2==nil)
 			assert_equal(cur:cursor_data(),mlist["key6"])
 		end)
 		
@@ -336,9 +363,12 @@ context("User should be able to manage data using cursor", function()
 		
 		
 		test("Should be able to check if cursor is pointing to a valid entry", function ()
-			-- last entry
-			local res, err = cur:is_valid_entry()
-			assert_true(res and err==nil)
+			local r, e = cur:seek("key2")
+			assert_true(r and e==nil)
+			-- check if an entry is valid
+			local res = cur:is_valid_entry()
+			--print("Risultato: ", res)
+			assert_true(res)
 			local res1 , err1 = cur:seek("key4")
 			assert_true(res1 and err1==nil)
 			assert_equal(cur:cursor_data(),mlist["key4"])				
@@ -379,7 +409,7 @@ context("User should be able to manage data using cursor", function()
 			assert_true(res1 and err1==nil)
 			-- check if correctly deleted
 			local res2, data = conn:kvfetch("key7")
-			assert_true(res1 and data==nil)
+			assert_true(res2 and data==nil)
 		end)
 		
 		test("Should be able to release a cursor", function ()
