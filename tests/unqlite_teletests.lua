@@ -1,4 +1,4 @@
-#!/usr/local/bin/lua5.1
+#!/usr/bin/env lua
 
 ----------------------------------------------------------------------------
 -- These tests use lua telescope (https://github.com/norman/telescope)
