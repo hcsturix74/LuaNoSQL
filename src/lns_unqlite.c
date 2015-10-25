@@ -417,8 +417,8 @@ static int jx9_ds_vmreset(lua_State *L)
 
 /*
 ** Extract a variable from jx9 vm.
-** It wraps unqlite_vm_reset.
-** int   unqlite_vm_reset(unqlite_vm *pVm);
+** It wraps unqlite_vm_extract_variable.
+** int   unqlite_vm_extract_variable(unqlite_vm *pVm, const char *zVar);
 ** @param L the lua state
 ** @return integer 1 or luanosql_faildirect with err msg
 */
@@ -440,6 +440,120 @@ static int jx9_ds_vm_extract_var(lua_State *L)
 	
     return 1;
 }
+
+
+
+/*
+** Extract a variable of integer type from jx9 vm.
+** It wraps:
+** int   unqlite_vm_extract_variable(unqlite_vm *pVm, const cher *zVar);
+** int   unqlite_value_to_int(unqlite_value *uValue);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vm_extract_int(lua_State *L)
+{
+    int res;
+    const char *errmsg, *zVar;
+	unqlite_value *uValue;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+	size_t iLen;
+	/* get var name to be extracted */
+	zVar = luaL_checklstring(L,2,&iLen);
+  
+    /* init a cursor for this connection */
+    uValue = unqlite_vm_extract_variable(jx9data->uvm, zVar);
+	
+	res =  unqlite_value_to_int(uValue);
+	lua_pushinteger(L,res);
+    return 1;
+}
+
+/*
+** Extract a variable of boolean type from jx9 vm.
+** It wraps :
+** int   unqlite_vm_extract_variable(unqlite_vm *pVm, const cher *zVar);
+** int   unqlite_value_to_bool(unqlite_value *uValue);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vm_extract_bool(lua_State *L)
+{
+    int res;
+    const char *errmsg, *zVar;
+	unqlite_value *uValue;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+	size_t iLen;
+	/* get var name to be extracted */
+	zVar = luaL_checklstring(L,2,&iLen);
+  
+    /* init a cursor for this connection */
+    uValue = unqlite_vm_extract_variable(jx9data->uvm, zVar);
+	
+	res =  unqlite_value_to_int(uValue);
+	lua_pushboolean(L,res);
+    return 1;
+}
+
+/*
+** Extract a variable of int64 type from jx9 vm.
+** It wraps :
+** int   unqlite_vm_extract_variable(unqlite_vm *pVm, const cher *zVar);
+** int   unqlite_value_to_bool(unqlite_value *uValue);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vm_extract_int64(lua_State *L)
+{
+    unqlite_int64 iVal;
+    const char *errmsg, *zVar;
+	unqlite_value *uValue;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+	size_t iLen;
+	/* get var name to be extracted */
+	zVar = luaL_checklstring(L,2,&iLen);
+  
+    /* init a cursor for this connection */
+    uValue = unqlite_vm_extract_variable(jx9data->uvm, zVar);
+	
+	iVal =  unqlite_value_to_int64(uValue);
+	/* FIXME: Check this for lua 5.1 this could be a problem. A macro is needed maybe */
+	lua_pushinteger(L,(int)iVal);
+    return 1;
+}
+
+
+/*
+** Extract a variable of boolean type from jx9 vm.
+** It wraps unqlite_vm_reset.
+** int   unqlite_vm_extract_variable(unqlite_vm *pVm, const cher *zVar);
+** double   unqlite_value_to_double(unqlite_value *uValue);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vm_extract_double(lua_State *L)
+{
+    double dVal;
+    const char *errmsg, *zVar;
+	unqlite_value *uValue;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+	size_t iLen;
+	/* get var name to be extracted */
+	zVar = luaL_checklstring(L,2,&iLen);
+  
+    /* init a cursor for this connection */
+    uValue = unqlite_vm_extract_variable(jx9data->uvm, zVar);
+	
+	dVal =  unqlite_value_to_double(uValue);
+	lua_pushnumber(L,dVal);
+    return 1;
+}
+
+
 
 #endif  /* LUANOSQL_OMIT_JX9_DOCSTORE */
 
@@ -1281,7 +1395,7 @@ static void create_metatables (lua_State *L)
 		//{"vm_get_dbl",jx9_ds_vm_extract_double},
 		//{"vm_get_str",jx9_ds_vm_extract_string},
 		//{"vm_get_res",jx9_ds_vm_extract_res},
-		//{"vm_release",jx9_ds_vm_release},
+		{"vm_release",jx9_ds_vm_release},
 		{NULL, NULL},
     };
 #endif /* LUANOSQL_OMIT_JX9_DOCSTORE */
