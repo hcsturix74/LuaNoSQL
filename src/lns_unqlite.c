@@ -29,6 +29,9 @@
 #define LUANOSQL_CONNECTION_UNQLITE "UnQLite connection"
 #define LUANOSQL_CURSOR_UNQLITE "UnQLite cursor"
 
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+#define LUANOSQL_JX9DOCSTORE_UNQLITE "UnQLite JX9VM"
+#endif /* End LUANOSQL_OMIT_JX9_DOCSTORE */
 
 /* Environment data structure */
 typedef struct
@@ -42,10 +45,13 @@ typedef struct
     short        closed;               /**< conn closed or not */
     int          env;                  /**< reference to environment */
     unsigned int cur_counter;	       /**< cursor counter (incremented or decremented) */
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+	unsigned int vm_counter;           /**< vm counter (incremented or decremented) */
+#endif
     unqlite      *unqlite_conn;        /**< database connection unqlite */
     int 		 con_fetch_cb;         /**< reference to unqlite_kv_fetch_callback */
     int 		 con_fetch_cb_udata;   /**< reference to unqlite_kv_fetch_callback userdata*/
-    lua_State    *L;                   /**< refernce to a lua_state, useful for callback implementation */
+    lua_State    *L;                   /**< reference to a lua_state, useful for callback implementation */
 } conn_data;
 
 /* Cursor data structure */
@@ -60,6 +66,20 @@ typedef struct
     int cur_data_cb;                /**< reference to unqlite_kv_cursor_data_callback - not used now*/
     int cur_data_cb_udata;          /**< reference to unqlite_kv_cursor_data_callback userdata - not used now */
 } cur_data;
+
+
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+/* Cursor data structure */
+typedef struct
+{
+    short       closed;
+    int         conn;               /**< reference to connection */
+    conn_data   *conn_data;         /**< reference to connection data structure */
+    unqlite_vm *uvm;	    /**< reference to unqlite_kv_cursor struct */
+    
+} jx9_doc_data;
+#endif /* LUANOSQL_OMIT_JX9_DOCSTORE */
+
 
 /* LUANOSQL_API function */
 LUANOSQL_API int luaopen_luanosql_unqlite(lua_State *L);
@@ -146,6 +166,285 @@ static cur_data *getcursor(lua_State *L) {
     luaL_argcheck(L, !cur->closed, 1, LUANOSQL_PREFIX"cursor is closed");
     return cur;
 }
+
+
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+
+/**
+** Create a metatable and leave it on top of the stack.
+** @param conn a connection to unqlite db
+** @param zBuf a string where the log error will be copied to.
+** @return void
+*/
+static void unqlite_jx9_logerror(unqlite *conn, const char *zBuf) {
+    int iLen;
+    /* Something goes wrong, extract database error log */
+    unqlite_config(conn, UNQLITE_CONFIG_JX9_ERR_LOG, &zBuf, &iLen);
+#ifdef LUANOSQL_DEBUG
+    if( iLen > 0 )
+    {
+        puts(zBuf);
+    }
+#endif
+}
+
+
+/*
+** Check for valid jx9_doc_data structure.
+** @param L the lua state
+** @return jx9_doc_data a valid jx9_doc_data structure / jx9 VM
+*/
+static jx9_doc_data *getjx9doc(lua_State *L) {
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata (L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"JX9 docstore VM expected");
+    luaL_argcheck(L, !jx9data->closed, 1, LUANOSQL_PREFIX"JX9 docstore VM is closed");
+    return jx9data;
+}
+
+
+
+/* Wrapped functions for JX9 VM data */
+
+/*
+** Jx9Doc object collector function
+** @param L the lua state
+** @return integer 0 , nil and err in case of
+*/
+static int jx9_ds_gc(lua_State *L)
+{
+    int res;
+    const char *errmsg;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    if (jx9data != NULL && !(jx9data->closed))
+    {
+        res = unqlite_vm_release(jx9data->uvm);
+        if (res != UNQLITE_OK) {
+            unqlite_jx9_logerror(jx9data->conn_data->unqlite_conn, errmsg);
+            return luanosql_faildirect(L, errmsg);
+        }
+		
+		conn_data *conn;
+		
+		/* destroy structure fields. */
+		jx9data->closed = 1;
+		jx9data->uvm = NULL;
+		lua_rawgeti (L, LUA_REGISTRYINDEX, jx9data->conn);
+		conn = lua_touserdata (L, -1);
+		conn->vm_counter--;
+		luaL_unref(L, LUA_REGISTRYINDEX, jx9data->conn);
+		//luaL_unref(L, LUA_REGISTRYINDEX, jx9data->uvm);
+		
+    }
+    return 0;
+}
+
+
+
+/*
+** Release the vm
+** Release a cursor object (deallocation) 
+** It wraps unqlite_kv_cursor_release.
+** int unqlite_kv_cursor_release(unqlite *pDb,unqlite_kv_cursor *pCur);
+** @param L the lua state 
+** @return integer 1 or luanosql_faildirect
+** 
+*/
+static int jx9_ds_vm_release(lua_State *L)
+{
+    int res;
+    const char *errmsg;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+    if (jx9data->closed) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+    res = unqlite_vm_release(jx9data->uvm);
+    if (res != UNQLITE_OK) {
+        unqlite_jx9_logerror(jx9data->conn_data->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+    }
+	
+	/*FIXME: Refactor, cretaing a destroy_vm as for cursor */
+	conn_data *conn;
+	/* destroy structure fields. */
+	jx9data->closed = 1;
+	jx9data->uvm = NULL;
+	lua_rawgeti (L, LUA_REGISTRYINDEX, jx9data->conn);
+	conn = lua_touserdata (L, -1);
+	conn->vm_counter--;
+	luaL_unref(L, LUA_REGISTRYINDEX, jx9data->conn);
+	//luaL_unref(L, LUA_REGISTRYINDEX, jx9data->uvm);
+	
+	lua_pushboolean(L, 1);
+    return 1;
+}
+
+
+
+/*
+** Compile a jx9 program passed as jx9script.
+** It wraps unqlite_compile.
+** int  unqlite_compile(nqlite *pDb, const char *zJx9, int nLen, unqlite_vm **ppOutVm);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_compile(lua_State *L)
+{
+    conn_data *conn = getconnection(L);
+    int res;
+    const char *errmsg;
+    unqlite_vm *vm;
+	const char *jx9script;
+	size_t iLen;
+	/* get jx9 script to be compiled */
+	jx9script = luaL_checklstring(L,2,&iLen);
+	
+    /* compile a jx9 program passed as jx9script */
+    res = unqlite_compile(conn->unqlite_conn,jx9script, iLen, &vm);
+    if (res != UNQLITE_OK) {  /* mostly  UNQLITE_COMPILE_ERR */
+        unqlite_jx9_logerror(conn->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+	}
+    /* Create our own jx9 vm internal structure */
+    jx9_doc_data *jx9_data = (jx9_doc_data*)lua_newuserdata(L, sizeof(jx9_doc_data));
+    luanosql_setmeta (L, LUANOSQL_JX9DOCSTORE_UNQLITE);
+
+    /* increment vm count for this connection */
+    conn->vm_counter++;
+    /* fill in cur structure */
+    jx9_data->uvm = vm;
+    jx9_data->closed = 0;
+    jx9_data->conn = LUA_NOREF;
+    jx9_data->conn_data = conn;
+    lua_pushvalue(L, 1);
+    jx9_data->conn = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 1;
+}
+
+
+/*
+** Compile a jx9 program passed as a file.
+** It wraps unqlite_compile_file.
+** int  unqlite_compile_file(nqlite *pDb, const char *zFile, int nLen, unqlite_vm **ppOutVm);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_compile_file(lua_State *L)
+{
+    conn_data *conn = getconnection(L);
+    int res;
+    const char *errmsg;
+    unqlite_vm *vm;
+	const char *zFile;
+	size_t iLen;
+	/* get the file to be compiled */
+	zFile = luaL_checklstring(L,2,&iLen);
+	
+    /* init a cursor for this connection */
+    res = unqlite_compile_file(conn->unqlite_conn,zFile, &vm);
+    if (res != UNQLITE_OK) {  /* mostly  UNQLITE_COMPILE_ERR */
+        unqlite_jx9_logerror(conn->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+    }
+    /* Create our own jx9 vm internal structure */
+    jx9_doc_data *jx9_data = (jx9_doc_data*)lua_newuserdata(L, sizeof(jx9_doc_data));
+    luanosql_setmeta (L, LUANOSQL_JX9DOCSTORE_UNQLITE);
+
+    /* increment vm count for this connection */
+    conn->vm_counter++;
+    /* fill in cur structure */
+    jx9_data->uvm = vm;
+    jx9_data->closed = 0;
+    jx9_data->conn = LUA_NOREF;
+    jx9_data->conn_data = conn;
+    lua_pushvalue(L, 1);
+    jx9_data->conn = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 1;
+}
+
+
+
+/*
+** Exec a successfully compile jx9 program.
+** It wraps unqlite_vm_exec.
+** int   unqlite_vm_exec(unqlite_vm *pVm);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vmexec(lua_State *L)
+{
+    int res;
+    const char *errmsg;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+   
+    /* init a cursor for this connection */
+    res = unqlite_vm_exec(jx9data->uvm);
+    if (res != UNQLITE_OK) {
+        unqlite_jx9_logerror(jx9data->conn_data->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+    }
+    lua_pushboolean(L,1);
+    return 1;
+}
+
+
+/*
+** Reset jx9 vm.
+** It wraps unqlite_vm_reset.
+** int   unqlite_vm_reset(unqlite_vm *pVm);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vmreset(lua_State *L)
+{
+    int res;
+    const char *errmsg;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+   
+    /* init a cursor for this connection */
+    res = unqlite_vm_reset(jx9data->uvm);
+    if (res != UNQLITE_OK) {
+        unqlite_jx9_logerror(jx9data->conn_data->unqlite_conn, errmsg);
+        return luanosql_faildirect(L, errmsg);
+    }
+    lua_pushboolean(L,1);
+    return 1;
+}
+
+
+/*
+** Extract a variable from jx9 vm.
+** It wraps unqlite_vm_reset.
+** int   unqlite_vm_reset(unqlite_vm *pVm);
+** @param L the lua state
+** @return integer 1 or luanosql_faildirect with err msg
+*/
+static int jx9_ds_vm_extract_var(lua_State *L)
+{
+    int res;
+    const char *errmsg, *zVar;
+	unqlite_value *uValue;
+    jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+    luaL_argcheck(L, jx9data != NULL, 1, LUANOSQL_PREFIX"vm expected");
+	size_t iLen;
+	/* get var name to be extracted */
+	zVar = luaL_checklstring(L,2,&iLen);
+   
+   
+    /* init a cursor for this connection */
+    uValue = unqlite_vm_extract_variable(jx9data->uvm, zVar);
+    
+	
+    return 1;
+}
+
+#endif  /* LUANOSQL_OMIT_JX9_DOCSTORE */
+
+
+
 
 /*
 ** Closes the cursor and reset all structure fields.
@@ -949,7 +1248,11 @@ static void create_metatables (lua_State *L)
         {"kvdelete", conn_kv_delete},
         {"kvfetch_callback", conn_kv_fetch_callback},
         {"create_cursor", conn_create_cursor},
-        {NULL, NULL},
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+        {"compile", jx9_ds_compile},
+		{"compile_file", jx9_ds_compile_file},
+#endif /* LUANOSQL_OMIT_JX9_DOCSTORE */
+		{NULL, NULL},
     };
     struct luaL_Reg cursor_methods[] = {
         {"__gc", cur_gc},
@@ -967,10 +1270,31 @@ static void create_metatables (lua_State *L)
         //{"data_callback", cur_data_callback}, /** to be implemented */
         {NULL, NULL},
     };
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+	struct luaL_Reg jx9_ds_methods[] = {
+        {"__gc", jx9_ds_gc},
+		{"vm_exec",jx9_ds_vmexec},
+		//{"vm_consumer_callback",ds_consumer_callback},
+		{"vm_reset",jx9_ds_vmreset},
+		{"vm_get_int",jx9_ds_vm_extract_int},
+		//{"vm_get_bool",jx9_ds_vm_extract_bool},
+		//{"vm_get_dbl",jx9_ds_vm_extract_double},
+		//{"vm_get_str",jx9_ds_vm_extract_string},
+		//{"vm_get_res",jx9_ds_vm_extract_res},
+		//{"vm_release",jx9_ds_vm_release},
+		{NULL, NULL},
+    };
+#endif /* LUANOSQL_OMIT_JX9_DOCSTORE */
+
     luanosql_createmeta(L, LUANOSQL_ENVIRONMENT_UNQLITE, environment_methods);
     luanosql_createmeta(L, LUANOSQL_CONNECTION_UNQLITE, connection_methods);
     luanosql_createmeta(L, LUANOSQL_CURSOR_UNQLITE, cursor_methods);
-    lua_pop (L, 3);
+#ifndef LUANOSQL_OMIT_JX9_DOCSTORE
+    luanosql_createmeta(L, LUANOSQL_JX9DOCSTORE_UNQLITE, jx9_ds_methods);
+	lua_pop(L, 4);
+#else
+	lua_pop(L,3);
+#endif
 }
 
 
