@@ -1,8 +1,8 @@
 package = "LuaNoSQL-UnQLite"
 version = "1.0.0-1"
 source = {
-  url = "git://github.com/hcsturix74/luanosql.git",
-  branch = "v1.0.0",
+  url = "git://github.com/hcsturix74/luanosql",
+  tag  = "v1.0.0",
 }
 description = {
    summary = "NoSQL Database connectivity for Lua (UnQLite driver)",
@@ -15,7 +15,8 @@ description = {
    homepage = "http://github.com/hcsturix74/LuaNoSQL"
 }
 dependencies = {
-   "lua >= 5.1"
+   "lua >= 5.1",
+   "telescope >= 0.6" -- for tests
 }
 external_dependencies = {
    UNQLITE = {
@@ -31,5 +32,6 @@ build = {
        incdirs = { "$(UNQLITE_INCDIR)" },
        libdirs = { "$(UNQLITE_LIBDIR)" }
      }
-   }
+   },
+   copy_directories = { "doc", "tests" }
 }
