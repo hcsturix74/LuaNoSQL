@@ -6,8 +6,7 @@ include $(CONFIG)
 OBJS= src/luanosql.o src/lns_$T.o
 
 
-SRCS= src/luanosql.h src/luanosql.c \
-      src/lns_unqlite.c
+SRCS= src/luanosql.h src/luanosql.c src/lns_$T.c
 
 AR= ar rcu
 RANLIB= ranlib
