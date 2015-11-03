@@ -304,6 +304,9 @@ static int jx9_ds_compile(lua_State *L)
     res = unqlite_compile(conn->unqlite_conn,jx9script, iLen, &vm);
     if (res != UNQLITE_OK) {  /* mostly  UNQLITE_COMPILE_ERR */
         unqlite_jx9_logerror(conn->unqlite_conn, errmsg);
+		/* need to set a value, UnQLite seems to return NULL 
+		as errmsg on UNQLITE_COMPILE_ERR */
+		if (errmsg==NULL) errmsg = "Compilation Error";
         return luanosql_faildirect(L, errmsg);
 	}
     /* Create our own jx9 vm internal structure */

@@ -22,6 +22,16 @@ local jx9_program = [==[ db_create('users');
 	db_store('users',{ 'name' : 'John' , 'age' : 87 });
 	db_store('users',{ 'name' : 'Mark' , 'age' : 12 });
     ]==]
+	
+-- no semicolon here, intentionally - see tests below
+local jx9_program_error_no_semicolon = [==[ db_create('users');
+    db_store('users',{ 'name' : 'Dean' , 'age' : 32 })  
+    db_store('users',{ 'name' : 'Jack' , 'age' : 27 });
+	db_store('users',{ 'name' : 'Luke' , 'age' : 33 });
+	db_store('users',{ 'name' : 'Eric' , 'age' : 55 });
+	db_store('users',{ 'name' : 'John' , 'age' : 87 });
+	db_store('users',{ 'name' : 'Mark' , 'age' : 12 });
+    ]==]
 
 -- not so simple jx9 program (extended)
 local jx9_program_extended = [==[
@@ -117,7 +127,16 @@ context("User should be able to compile a jx9 program", function()
 		assert_not_nil(conn)
 				
 	end)
-			
+	
+
+	test("Should be able to raise an error for a wrong jx9 program", function ()
+		local e 
+		vm, e = conn:compile(jx9_program_error_no_semicolon)
+		assert_nil(vm)
+		assert_equal(e, "LuaNoSQL: Compilation Error")
+	end)
+
+	
 	test("Should be able to compile a jx9 program", function ()
 		vm = conn:compile(jx9_program)
 		assert_not_nil(vm)
