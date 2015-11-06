@@ -75,7 +75,9 @@ typedef struct
     short       closed;
     int         conn;               /**< reference to connection */
     conn_data   *conn_data;         /**< reference to connection data structure */
-    unqlite_vm *uvm;	    /**< reference to unqlite_kv_cursor struct */
+    unqlite_vm *uvm;	            /**< reference to unqlite_kv_cursor struct */
+	int jx9_consumer_cb;            /**< reference to unqlite_vm_config - setting a callback */
+    int jx9_consumer_cb_udata;      /**< reference to unqlite_vm_config UNQLITE_VM_CONFIG_OUTPUT callback userdata */
     
 } jx9_doc_data;
 #endif /* LUANOSQL_OMIT_JX9_DOCSTORE */
@@ -394,6 +396,79 @@ static int jx9_ds_vmexec(lua_State *L)
 
 
 /*
+** unqlite_vm_config(jx9data->uvm, UNQLITE_VM_CONFIG_OUTPUT, consumer_callback, jx9data);
+** Params: database, callback function, userdata
+**
+*** consumer_callback:
+** Params: pData,iDataLen, pUserData 
+** @param pData void* output provided 
+** @param iDataLen output length integer  
+** @param pUserData passed is a jx9_doc_data
+** @return integer 0
+*/
+static int consumer_callback(const void *pData, unsigned int iDataLen, void *pUserData /* jx9_doc_data for us */) {
+    jx9_doc_data *jx9data = (jx9_doc_data*)pUserData;
+    int res = 0;
+    lua_State *L = jx9data->conn_data->L;
+    int top = lua_gettop(L);
+    /* setup lua callback */
+    lua_rawgeti(L, LUA_REGISTRYINDEX, jx9data->jx9_consumer_cb);    /* get the callback function */
+    /* pData push  param */
+    lua_pushlstring(L, pData, (size_t)iDataLen);
+    /* iDataLen push  param */
+    lua_pushinteger(L, iDataLen);
+    /* get callback user data */
+    lua_rawgeti(L, LUA_REGISTRYINDEX, jx9data->jx9_consumer_cb_udata);
+    /* call lua function */
+    res = lua_pcall(L, 3, 1, 0);
+    lua_settop(L, top);
+    return 0;
+}
+
+
+/**
+** Expecting a Lua function looking like this:
+** vm_consumer_callback(mycallback, udata or nil)
+** mycallback(pout, udata)
+** (pUserData passed is a jx9_doc_data struct)
+** It wraps unqlite_vm_config
+** int unqlite_vm_config(unqlite_vm *pVm,
+**    int (*xConsumer)(const void *pOut,unsigned int iDataLen,void *pUserData),
+**    void *pUserData);
+** @param L the lua state 
+** @return integer 0
+*/
+static int jx9_ds_consumer_callback(lua_State *L) {
+    
+	jx9_doc_data *jx9data = (jx9_doc_data *)luaL_checkudata(L, 1, LUANOSQL_JX9DOCSTORE_UNQLITE);
+	
+    if (lua_gettop(L) < 2 || lua_isnil(L, 2)) {
+        luaL_unref(L, LUA_REGISTRYINDEX, jx9data->jx9_consumer_cb);
+        luaL_unref(L, LUA_REGISTRYINDEX, jx9data->jx9_consumer_cb_udata);
+
+        jx9data->jx9_consumer_cb = LUA_NOREF;
+        jx9data->jx9_consumer_cb_udata = LUA_NOREF;
+
+        /* clear con_fetch_cb handler */
+        unqlite_vm_config(jx9data->uvm, UNQLITE_VM_CONFIG_OUTPUT, NULL, NULL);
+	}
+    else {
+        luaL_checktype(L, 2, LUA_TFUNCTION);
+        /* always userdata field (even if nil) */
+        lua_settop(L, 3);
+
+        luaL_unref(L, LUA_REGISTRYINDEX, jx9data->jx9_consumer_cb);
+        luaL_unref(L, LUA_REGISTRYINDEX, jx9data->jx9_consumer_cb_udata);
+        jx9data->jx9_consumer_cb_udata = luaL_ref(L, LUA_REGISTRYINDEX);
+        jx9data->jx9_consumer_cb = luaL_ref(L, LUA_REGISTRYINDEX);
+
+        /* set kv_fetch_callback handler */
+        unqlite_vm_config(jx9data->uvm, UNQLITE_VM_CONFIG_OUTPUT, consumer_callback, jx9data);
+    }
+    return 0;
+}
+
+/*
 ** Reset jx9 vm.
 ** It wraps unqlite_vm_reset.
 ** int   unqlite_vm_reset(unqlite_vm *pVm);
@@ -416,6 +491,8 @@ static int jx9_ds_vmreset(lua_State *L)
     lua_pushboolean(L,1);
     return 1;
 }
+
+
 
 
 /*
@@ -495,7 +572,7 @@ static int jx9_ds_vm_extract_bool(lua_State *L)
     /* init a cursor for this connection */
     uValue = unqlite_vm_extract_variable(jx9data->uvm, zVar);
 	
-	res =  unqlite_value_to_int(uValue);
+	res =  unqlite_value_to_bool(uValue);
 	lua_pushboolean(L,res);
     return 1;
 }
@@ -1391,7 +1468,7 @@ static void create_metatables (lua_State *L)
 	struct luaL_Reg jx9_ds_methods[] = {
         {"__gc", jx9_ds_gc},
 		{"vm_exec",jx9_ds_vmexec},
-		//{"vm_consumer_callback",ds_consumer_callback},
+		{"vm_consumer_callback",jx9_ds_consumer_callback},
 		{"vm_reset",jx9_ds_vmreset},
 		{"vm_get_int",jx9_ds_vm_extract_int},
 		//{"vm_get_bool",jx9_ds_vm_extract_bool},
