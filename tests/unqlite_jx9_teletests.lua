@@ -14,7 +14,8 @@ local driver = require"luanosql.unqlite"
 
 
 -- simple jx9 to be executed
-local jx9_program = [==[ db_create('users');
+local jx9_program = [==[ 
+    db_create('users');
     db_store('users',{ 'name' : 'Dean' , 'age' : 32 });
     db_store('users',{ 'name' : 'Jack' , 'age' : 27 });
 	db_store('users',{ 'name' : 'Luke' , 'age' : 33 });
@@ -52,6 +53,7 @@ local jx9_program_extended = [==[
     ]==]
 
 local jx9_program_json = [==[ 
+
 	// Create a dummy configuration using a JSON object
 	$my_config =  {
 	  bind_ip : "127.0.0.1",
@@ -112,6 +114,19 @@ local jx9_program_json = [==[
 	fclose($fp);
 
 ]==] 
+
+
+-- define a custom callback for vm_consumer_callback
+local function custom_test_callback(dataout,datalen,ud)
+  print("UnQLite Update Hook:",dataout,datalen,ud)
+  -- no assert here, this is a callback and errors are NOT managed (at C-level)
+  -- local t1,t2,t3 = ud["1"], ud["2"],ud["3"]
+  --print("Userdata:", t1,t2,t3)
+end
+
+
+
+
   
 -- In this context we address jx9 compile and compile file
 context("User should be able to compile a jx9 program", function()
@@ -146,6 +161,20 @@ context("User should be able to compile a jx9 program", function()
 		local res, err = vm:vm_exec()
 		assert_true(res and err==nil)
 	end) 
+	
+	
+	test("Should be able to get data inserted with the jx9 program", function ()
+		local vm2
+		vm2 = conn:compile("$rec = db_fetch('users'); print $rec;")
+		--print(vm2, vm)
+		assert_not_nil(vm2)
+		local utbl = {'Eggs', 'Bacon'}
+		vm2:vm_consumer_callback(custom_test_callback, utbl)
+		local res, err = vm2:vm_exec()
+		assert_true(res and err==nil)
+		--TODO: refactor, this should not be here
+		assert_true(vm2:vm_reset())
+	end)
 	
 	
 	-- Reset a jx9 vm
