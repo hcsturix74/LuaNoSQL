@@ -120,8 +120,8 @@ local jx9_program_json = [==[
 local function custom_test_callback(dataout,datalen,ud)
   print("UnQLite Update Hook:",dataout,datalen,ud)
   -- no assert here, this is a callback and errors are NOT managed (at C-level)
-  -- local t1,t2,t3 = ud["1"], ud["2"],ud["3"]
-  --print("Userdata:", t1,t2,t3)
+  local t1,t2 = ud["1"], ud["2"]
+  print("Userdata:", t1,t2)
 end
 
 
