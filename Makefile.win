@@ -1,0 +1,18 @@
+
+OBJS= src\luanosql.obj src\lns_$T.obj
+
+SRCS= src\luanosql.h src\luanosql.c src\lns_$T.c
+
+LIBNAME= $T.dll
+
+all: src\$(LIBNAME)
+
+.c.obj:
+	cl /c /Fo$@ /O2 $(CFLAGS) /DWIN32 /D_CRT_SECURE_NO_DEPRECATE $<
+
+src\$(LIBNAME): $(OBJS)
+	link /dll /def:src\$T.def /out:$@ $(LIB_OPTION) $(OBJS)
+
+install:
+	IF NOT EXIST "$(LUA_LIBDIR)\luanosql" mkdir "$(LUA_LIBDIR)\luanosql"
+	cp src\$(LIBNAME) "$(LUA_LIBDIR)\luanosql"

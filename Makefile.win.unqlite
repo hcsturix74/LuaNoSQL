@@ -1,0 +1,28 @@
+LUA_INC=c:\lua5.1\include
+LUA_DIR=c:\lua5.1\lua
+LUA_LIBDIR=c:\lua5.1
+LUA_LIB=c:\lua5.1\lua5.1.lib
+
+T=unqlite
+
+DRIVER_INCLUDE= /I"c:\unqlite"
+DRIVER_OBJ="c:\unqlite\unqlite.obj"
+
+OBJS= src\luanosql.obj src\lns_$T.obj $(DRIVER_OBJ)
+
+.c.obj:
+	cl /c /Fo$@ /O2 /MD /I$(LUA_INC) /DWIN32 /D_CRT_SECURE_NO_DEPRECATE $(DRIVER_INCLUDE) $<
+
+src\$T.dll: $(OBJS)
+	link /dll /def:src\$T.def /out:$@ $(OBJS) $(LUA_LIB) 
+
+install:
+	IF NOT EXIST "$(LUA_LIBDIR)\luanosql" mkdir "$(LUA_LIBDIR)\luanosql"
+	copy "src\$T.dll" "$(LUA_LIBDIR)\luanosql"
+
+clean:
+	del src\$T.dll
+	del src\$T.exp
+	del src\$T.lib
+	del $(OBJS)
+
