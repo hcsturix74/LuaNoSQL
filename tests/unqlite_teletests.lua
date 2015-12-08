@@ -153,6 +153,7 @@ context("User should be able to create/close a connection", function()
 	end)
 	
 	-- check data persistence re-opening the connection, fetch and check data
+	-- TODO: Refactor test if possible
 	test ("Should be able to check data have been written", function()
 		local conn = assert(env:connect("lns-unqlite.testdb"))
 		assert_not_nil(conn)
@@ -209,6 +210,7 @@ context("User should be able to manually manage transactions", function()
 	-- nested context also here
 	context("User should be able commit/rollback manually a transation", function()
 		
+		-- rollaback a transaction
 		test("Should be able to rollback a transaction", function ()
 			-- insert a record
 			local res, err = conn:kvstore("Mykey1","MyKeyValue1")
